@@ -32,7 +32,7 @@ class Configuration(object):
     config_section = 'otx_misp'
 
     def __init__(self, arguments):
-        self.config = configparser.SafeConfigParser(allow_no_value=True)
+        self.config = configparser.ConfigParser(allow_no_value=True)
         if arguments.config and os.path.isfile(arguments.config):
             self.config.read(arguments.config)
         if not self.config.has_section(self.config_section):
@@ -43,7 +43,7 @@ class Configuration(object):
 
     @staticmethod
     def _clone_config(config):
-        clone = configparser.SafeConfigParser(allow_no_value=True)
+        clone = configparser.ConfigParser(allow_no_value=True)
         for section in config.sections():
             clone.add_section(section)
             for option in config.options(section):

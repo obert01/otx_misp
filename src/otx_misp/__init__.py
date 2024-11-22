@@ -344,6 +344,7 @@ def create_events(pulse_or_list, author=False, server=False, key=False, misp=Fal
         if bulk_tag is not None:
             tag_event(misp, event, bulk_tag)
 
+    # If discover_tags option, then try to attach matching tags to the MISP event
     if misp and hasattr(misp, 'discovered_tags') and 'tags' in pulse:
         for pulse_tag in pulse['tags']:
             if pulse_tag.lower() in misp.discovered_tags:
@@ -351,6 +352,17 @@ def create_events(pulse_or_list, author=False, server=False, key=False, misp=Fal
                 log.info("\t - Adding tag: {}".format(tag))
                 tag_event(misp, event, tag)
                 result_event['tags'].append(tag)
+
+    # Let's anyway report the OTX tags as a MISP comment attribute
+    if misp and 'tags' in pulse:
+        a = pymisp.MISPAttribute()
+        a.category = "External analysis"
+        a.type = 'comment'
+        a.value = ""
+        for pulse_tag in pulse['tags']:
+            a.value += "#" + pulse_tag + " "
+        a.value.strip()
+        add_attribute(misp, event, a)
 
     # Discover MITRE attacck techniques in the pulse and add them as MISP galaxy tags
     # The so-called cluster's connector tag must be declared in MISP
@@ -395,9 +407,28 @@ def create_events(pulse_or_list, author=False, server=False, key=False, misp=Fal
         a.value = ind_val
         a.to_ids = to_ids
 
+        a.comment = ""
         if 'description' in ind and isinstance(ind['description'], six.text_type) and ind['description']:
             a.comment = ind['description']
+
+        if 'role' in ind and isinstance(ind['role'], six.text_type) and ind['role']:
+          if a.comment != "":
+            a.comment += " - " + ind.get('role')
+          else:
+            a.comment += ind.get('role')
             
+        if 'title' in ind and isinstance(ind['title'], six.text_type) and ind['title']:
+          if a.comment != "":
+            a.comment += " - " + ind.get('title')
+          else:
+            a.comment += ind.get('title')
+
+        if 'content' in ind and isinstance(ind['content'], six.text_type) and ind['content']:
+          if a.comment != "":
+            a.comment += " - " + ind.get('content')
+          else:
+            a.comment += ind.get('content')    
+
         if ind_type == 'FileHash-SHA256':
             log.info("\t - Adding SHA256 hash: {}".format(ind_val))
             a.category = 'Artifacts dropped'            
